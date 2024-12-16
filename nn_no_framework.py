@@ -29,7 +29,7 @@ def ReLU(Z):
   # applies to each element in Z
   return np.maximum(0, Z)
 
-def ReLu_derivative(Z):
+def ReLU_derivative(Z):
   # returns 1 if Z > 0, else 0
   return Z > 0
 
@@ -40,6 +40,7 @@ def softmax(Z, epsilon=1e-15):
     exp_Z = np.exp(Z_shifted)
     return exp_Z / (np.sum(exp_Z, axis=0, keepdims=True) + epsilon)
 
+# feedforward network
 def forward_prop(W1, b1, W2, b2, X):
   Z1 = W1.dot(X) + b1 # (10, 784) . (784, 60000) + (10, 1) => (10, 60000)
   A1 = ReLU(Z1) # (10, 60000)
@@ -55,13 +56,13 @@ def one_hot(Y):
 
   return one_hot # (10, 60000)
 
-def back_prop(Z1, A1, Z2, A2, W2, X, Y):
+def back_prop(Z1, A1, A2, W2, X, Y):
   m = Y.size
   one_hot_Y = one_hot(Y)
-  dZ2 = A2 - one_hot_Y # (10, 60000)
+  dZ2 = A2 - one_hot_Y # (10, 60000) # softmax outcome - one hot y
   dW2 = 1/m * dZ2.dot(A1.T) # (10, 60000) . (60000, 10) => (10, 10)
   db2 = 1/m * np.sum(dZ2, 1).reshape(-1, 1) # (10, 1)
-  dZ1 = W2.T.dot(dZ2) * ReLu_derivative(Z1) # (10, 10) . (10, 60000) => (10, 60000)
+  dZ1 = W2.T.dot(dZ2) * ReLU_derivative(Z1) # (10, 10) . (10, 60000) => (10, 60000)
   dW1 = 1/m * dZ1.dot(X.T) # (10, 60000) . (60000, 784) => (10, 784)
   db1 = 1/m * np.sum(dZ1, 1).reshape(-1, 1) # (10, 1)
 
@@ -99,7 +100,7 @@ def gradient_decent(X_train, y_train, epochs, learning_rate):
 
   for i in range(1, epochs + 1):
     Z1, A1, Z2, A2 = forward_prop(W1, b1, W2, b2, X_train)
-    dW1, db1, dW2, db2 = back_prop(Z1, A1, Z2, A2, W2, X_train, y_train)
+    dW1, db1, dW2, db2 = back_prop(Z1, A1, A2, W2, X_train, y_train)
     W1, b1, W2, b2 = update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, learning_rate)
 
     if i % 100 == 0:
@@ -116,5 +117,5 @@ W1, b1, W2, b2 = gradient_decent(X_train, y_train, epochs, learning_rate)
 # Evaluate on test data
 _, _, _, A2 = forward_prop(W1, b1, W2, b2, X_test)
 print("Running on test data.\n")
-print(f"Test accuracy: {get_accuracy(get_predictions(A2), y_test)}\n")
+print(f"Test accuracy: {get_accuracy(get_predictions(A2), y_test):.4f}\n")
 
